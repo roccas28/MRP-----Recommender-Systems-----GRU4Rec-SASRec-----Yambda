@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Set global aesthetics -> Matches formatting from previous clinical/deep learning projects
+# Set global aesthetics
 sns.set_theme(style="whitegrid")
 plt.rcParams.update({
     'font.size': 12, 
