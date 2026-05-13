@@ -26,7 +26,7 @@ Handles memory-optimized data ingestion and label encoding.
 ### 4. `train.py`
 
 
-### 5. `main.py`
+### 5. `main_etl.py`
 The primary orchestrator. Cleans the data, applies the LOO split, and exports the final neural-network-ready arrays.
 
 ### 6. `plots.py`
@@ -34,7 +34,7 @@ Generates EDA visualizations (completion thresholds, long-tail popularity).
 
 ### 7. `data/`
 **[IMPORTANT]** This folder is deliberately left empty in the submission zip file due to size constraints. The multi_event.parquet file must be downloaded via the link below and extracted here before running the code.
-* **Download Link:** 
+* **Download Link:** https://huggingface.co/datasets/yandex/yambda/tree/main/flat/50m ->  multi_event.parquet
 
 ### 8. `saved_models/`
 
