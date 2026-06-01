@@ -4,8 +4,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
-# Set global aesthetics
+# Set global aesthetics -> Matches formatting from previous clinical/deep learning projects
 sns.set_theme(style="whitegrid")
 plt.rcParams.update({
     'font.size': 12, 
@@ -79,3 +80,70 @@ def plot_event_type_distribution(df_events): # Plots interaction composition bre
     plt.tight_layout()
     plt.savefig("./output/eda_event_types.png", dpi=300)
     print("Saved eda_event_types.png")
+
+def plot_training_loss(history, model_name="SASRec"): # Visualizes the descent of the loss function
+    print(f"Generating Training Loss Curve for {model_name}...")
+    plt.figure(figsize=(10, 6))
+    
+    # Plot the BPR loss over time -> Visually confirms if the network is actively learning the gradient
+    sns.lineplot(x=range(1, len(history['loss']) + 1), y=history['loss'], color="red", marker='o')
+    
+    plt.title(f"{model_name} Training Curve (BPR Loss)")
+    plt.ylabel("Bayesian Personalized Ranking (BPR) Loss")
+    plt.xlabel("Training Epoch")
+    plt.tight_layout()
+    plt.savefig(f"./output/{model_name}_training_loss.png", dpi=300) # Save artifact for MRP report
+    print(f"Saved {model_name}_training_loss.png")
+
+def plot_comparative_loss(sasrec_history, gru_history): # Overlays both training curves for architectural comparison
+    print("Generating Comparative Training Loss Curve...")
+    plt.figure(figsize=(10, 6))
+    
+    # Plot SASRec (Transformer) -> Blue curve
+    sns.lineplot(x=range(1, len(sasrec_history['loss']) + 1), y=sasrec_history['loss'], 
+                 color="blue", marker='o', label="SASRec (Transformer)")
+                 
+    # Plot GRU4Rec (RNN) -> Red curve
+    sns.lineplot(x=range(1, len(gru_history['loss']) + 1), y=gru_history['loss'], 
+                 color="red", marker='s', label="GRU4Rec (RNN)")
+    
+    plt.title("Training Convergence Comparison: SASRec vs GRU4Rec")
+    plt.ylabel("Bayesian Personalized Ranking (BPR) Loss")
+    plt.xlabel("Training Epoch")
+    plt.legend(loc='upper right')
+    plt.tight_layout()
+    plt.savefig("./output/comparative_training_loss.png", dpi=300) # Save comparative artifact
+    print("Saved comparative_training_loss.png")
+
+def plot_evaluation_metrics(sasrec_hr, sasrec_ndcg, gru_hr, gru_ndcg, pop_hr):
+    print("Generating Final Evaluation Bar Chart...")
+    
+    # Data for plotting
+    labels = ['SASRec (Transformer)', 'GRU4Rec (RNN)', 'Popularity Baseline']
+    hr_scores = [sasrec_hr, gru_hr, pop_hr]
+    ndcg_scores = [sasrec_ndcg, gru_ndcg, 0.0] # Pop baseline doesn't use NDCG here
+    
+    x = np.arange(len(labels))
+    width = 0.35
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Create grouped bars
+    rects1 = ax.bar(x - width/2, hr_scores, width, label='HR@10', color='#1f77b4')
+    rects2 = ax.bar(x + width/2, ndcg_scores, width, label='NDCG@10', color='#ff7f0e')
+    
+    # Add text, labels, and custom x-axis tick labels
+    ax.set_ylabel('Score (0.0 to 1.0)')
+    ax.set_title('Final Model Evaluation: Retrieval vs. Ranking Quality')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.legend()
+    
+    # Auto-attach text labels above bars for exact numbers
+    ax.bar_label(rects1, padding=3, fmt='%.3f')
+    ax.bar_label(rects2, padding=3, fmt='%.3f')
+    
+    plt.ylim(0, 1.0) # Ensure y-axis is standardized
+    plt.tight_layout()
+    plt.savefig("./output/final_evaluation_metrics.png", dpi=300)
+    print("Saved final_evaluation_metrics.png")
