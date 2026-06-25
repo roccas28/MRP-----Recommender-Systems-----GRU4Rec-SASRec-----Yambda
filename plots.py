@@ -1,5 +1,5 @@
 # Roccas Raveendran - 500853856
-# Sequential Recommender System - Exploratory Data Analysis (EDA) Plots
+# Sequential Recommender System - Exploratory Data Analysis (EDA) $ Evaluation Plots
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -147,3 +147,85 @@ def plot_evaluation_metrics(sasrec_hr, sasrec_ndcg, gru_hr, gru_ndcg, pop_hr):
     plt.tight_layout()
     plt.savefig("./output/final_evaluation_metrics.png", dpi=300)
     print("Saved final_evaluation_metrics.png")
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def plot_dual_hyperparameter_heatmaps(df, metric='HR@10'):
+    print(f"Generating Dual Heatmaps for {metric}...")
+    
+    # Find the Learning Rate that yielded the highest overall performance on average to hold constant
+    best_lr = df.groupby('Learning_Rate')[metric].mean().idxmax()
+    print(f"Holding Learning Rate constant at optimal value: {best_lr}")
+    
+    # Filter the dataframe to only use the optimal learning rate
+    optimal_df = df[df['Learning_Rate'] == best_lr]
+    
+    # Split the data by architecture
+    sasrec_df = optimal_df[optimal_df['Model'] == 'SASRec']
+    gru_df = optimal_df[optimal_df['Model'] == 'GRU4Rec']
+    
+    # Pivot into 2D matrices
+    sasrec_pivot = sasrec_df.pivot(index='Sequence_Length', columns='Embedding_Dim', values=metric).sort_index(ascending=False)
+    gru_pivot = gru_df.pivot(index='Sequence_Length', columns='Embedding_Dim', values=metric).sort_index(ascending=False)
+    
+    # Set up a side-by-side subplot
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    
+    # Plot SASRec
+    sns.heatmap(sasrec_pivot, annot=True, fmt=".4f", cmap="YlGnBu", ax=axes[0])
+    axes[0].set_title(f"SASRec Transformer: {metric} Sensitivity")
+    axes[0].set_ylabel("Maximum Sequence Length (K)")
+    axes[0].set_xlabel("Embedding Dimensionality (d)")
+    
+    # Plot GRU4Rec
+    sns.heatmap(gru_pivot, annot=True, fmt=".4f", cmap="YlOrRd", ax=axes[1]) # Using a red/orange scale to differentiate the RNN visually
+    axes[1].set_title(f"GRU4Rec Baseline: {metric} Sensitivity")
+    axes[1].set_ylabel("") # Hide Y label on the second graph for clean presentation
+    axes[1].set_xlabel("Embedding Dimensionality (d)")
+    
+    plt.tight_layout()
+    filename = metric.replace('@', '_')
+    plt.savefig(f"./output/dual_architecture_heatmap_{filename}.png", dpi=300)
+    print(f"Saved dual_architecture_heatmap_{filename}.png")
+
+def plot_hyperparameter_line_graphs(df, metric='HR@10'): # Generates isolated line graphs for each hyperparameter
+    print(f"Generating isolated line graphs for {metric}...")
+    
+    # Set up a 1x3 grid for the three hyperparameters
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    
+    # Enforce consistent colors across all graphs: SASRec = Blue, GRU4Rec = Red
+    color_map = {'SASRec': '#1f77b4', 'GRU4Rec': '#d62728'} 
+    
+    # --- GRAPH 1: Sequence Length Scaling ---
+    # Group by model and sequence length, taking the absolute best score achieved at that length
+    seq_df = df.groupby(['Model', 'Sequence_Length'])[metric].max().reset_index()
+    sns.lineplot(data=seq_df, x='Sequence_Length', y=metric, hue='Model', 
+                 marker='o', palette=color_map, ax=axes[0])
+    axes[0].set_title(f"Sensitivity to Sequence Length (K)")
+    axes[0].set_xlabel("Maximum Sequence Length")
+    axes[0].set_ylabel(f"Maximum Achieved {metric}")
+    
+    # --- GRAPH 2: Embedding Dimensionality Scaling ---
+    dim_df = df.groupby(['Model', 'Embedding_Dim'])[metric].max().reset_index()
+    sns.lineplot(data=dim_df, x='Embedding_Dim', y=metric, hue='Model', 
+                 marker='s', palette=color_map, ax=axes[1])
+    axes[1].set_title(f"Sensitivity to Embedding Dimensionality (d)")
+    axes[1].set_xlabel("Embedding Dimensionality")
+    axes[1].set_ylabel("") # Hide y-label for a cleaner look
+    
+    # --- GRAPH 3: Learning Rate Scaling ---
+    lr_df = df.groupby(['Model', 'Learning_Rate'])[metric].max().reset_index()
+    # Convert LR to a string so the X-axis plots them evenly as categories
+    lr_df['Learning_Rate'] = lr_df['Learning_Rate'].astype(str) 
+    sns.lineplot(data=lr_df, x='Learning_Rate', y=metric, hue='Model', 
+                 marker='^', palette=color_map, ax=axes[2])
+    axes[2].set_title(f"Sensitivity to Learning Rate")
+    axes[2].set_xlabel("Learning Rate")
+    axes[2].set_ylabel("")
+    
+    plt.tight_layout()
+    filename = metric.replace('@', '_')
+    plt.savefig(f"./output/hyperparameter_scaling_lines_{filename}.png", dpi=300)
+    print(f"Saved hyperparameter_scaling_lines_{filename}.png")

@@ -108,15 +108,15 @@ def run():
     print("MRP Project: Sequential Recommender Evaluation Phase")
     
     # Initialize DataLoader -> We just need it to feed the test data and give us the dynamic vocab size
-    loader = ds.SequentialDataLoader(file_path='./output/processed_sequences.parquet', max_len=50)
+    loader = ds.SequentialDataLoader(file_path='./output/processed_sequences.parquet', max_len=70)
     dynamic_vocab_size = loader.total_items + 1 
     
     # --- 1. Evaluate SASRec ---
-    sasrec_model = mdl.SASRec(vocab_size=dynamic_vocab_size, max_len=50, embed_dim=64, num_heads=2, num_blocks=2)
+    sasrec_model = mdl.SASRec(vocab_size=dynamic_vocab_size, max_len=70, embed_dim=64, num_heads=2, num_blocks=2)
     
     # FIX: Explicitly build the graph in memory so Keras has "containers" to put the weights into
-    # input_shape=(None, max_len) -> 'None' represents a dynamic batch size, '50' is our padded sequence length
-    sasrec_model.build(input_shape=(None, 50)) 
+    # input_shape=(None, max_len) -> 'None' represents a dynamic batch size, '70' is our padded sequence length
+    sasrec_model.build(input_shape=(None, 70)) 
     
     sasrec_model.load_weights('./saved_models/sasrec_final.weights.h5')
     
@@ -124,10 +124,10 @@ def run():
     sasrec_hr, sasrec_ndcg = sasrec_evaluator.evaluate_model(top_k=10)
     
     # --- 2. Evaluate GRU4Rec ---
-    gru_model = mdl.GRU4Rec(vocab_size=dynamic_vocab_size, max_len=50, embed_dim=64, gru_units=64)
+    gru_model = mdl.GRU4Rec(vocab_size=dynamic_vocab_size, max_len=70, embed_dim=64, gru_units=64)
     
     # FIX: Explicitly build the GRU graph in memory as well
-    gru_model.build(input_shape=(None, 50))
+    gru_model.build(input_shape=(None, 70))
     
     gru_model.load_weights('./saved_models/gru4rec_final.weights.h5')
     

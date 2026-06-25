@@ -6,14 +6,17 @@ import numpy as np
 
 class RecommenderTrainer: # Orchestrates custom gradient descent 
     
-    def __init__(self, model, train_dataset, val_dataset):
+    def __init__(self, model, train_dataset, val_dataset, optimizer=None):
         print("Initializing Custom Training Loop...")
         self.model = model
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         
         # Hyperparameter: Learning Rate -> 0.001 is the industry standard starting point for Adam
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+        if optimizer is not None:
+            self.optimizer = optimizer
+        else:
+            self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 
     @tf.function # Compiles the python function into a static C++ graph -> Massively accelerates batch training
     def _train_step(self, inputs, targets):

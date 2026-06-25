@@ -3,6 +3,7 @@
 
 import os
 import time
+import tensorflow as tf
 
 # Custom Modules
 import dataset as ds
@@ -22,7 +23,7 @@ def run():
     # --- PHASE 1: Data Ingestion ---
     print("\n--- Initializing Data Pipeline ---")
     # Hyperparameters: max_len=50 restricts context to last 50 interactions
-    loader = ds.SequentialDataLoader(file_path='./output/processed_sequences.parquet', max_len=50)
+    loader = ds.SequentialDataLoader(file_path='./output/processed_sequences.parquet', max_len=70)
     
     # Generate identical pipelines -> Shuffling enabled for training, disabled for testing
     train_dataset = loader.generate_tf_dataset(batch_size=256, is_training=True)
@@ -30,21 +31,25 @@ def run():
     
     # FIX: Dynamically extract the vocab_size from the loader
     # The +1 is mathematically mandatory to account for the '0' padding token!
-    dynamic_vocab_size = loader.total_items + 1 
+    dynamic_vocab_size = loader.total_items + 1
+
+    # The Grid Search proved a higher learning rate yields better convergence for both models
+    optimal_optimizer_sasrec = tf.keras.optimizers.Adam(learning_rate=0.005)
+    optimal_optimizer_gru = tf.keras.optimizers.Adam(learning_rate=0.005)
     
     # --- PHASE 2: Train SASRec (Transformer) ---
     print("\n--- Building & Training SASRec ---")
     # Instantiate the SASRec Transformer
     sasrec_model = mdl.SASRec(
         vocab_size=dynamic_vocab_size, 
-        max_len=50, 
-        embed_dim=64, 
+        max_len=70, 
+        embed_dim=32, 
         num_heads=2, 
         num_blocks=2, 
         dropout_rate=0.2
     )
     
-    sasrec_trainer = tr.RecommenderTrainer(model=sasrec_model, train_dataset=train_dataset, val_dataset=test_dataset)
+    sasrec_trainer = tr.RecommenderTrainer(model=sasrec_model, train_dataset=train_dataset, val_dataset=test_dataset, optimizer=optimal_optimizer_sasrec)
     
     # Hyperparameter: 10 epochs is standard for large-scale recommender systems before extreme overfitting occurs
     sasrec_history = sasrec_trainer.train(epochs=10)
@@ -58,13 +63,13 @@ def run():
     # Instantiate the GRU model -> Uses same embed_dim as SASRec to ensure a mathematically fair comparison
     gru_model = mdl.GRU4Rec(
         vocab_size=dynamic_vocab_size, 
-        max_len=50, 
-        embed_dim=64, 
-        gru_units=64, 
+        max_len=70, 
+        embed_dim=256, 
+        gru_units=256, 
         dropout_rate=0.2
     )
     
-    gru_trainer = tr.RecommenderTrainer(model=gru_model, train_dataset=train_dataset, val_dataset=test_dataset)
+    gru_trainer = tr.RecommenderTrainer(model=gru_model, train_dataset=train_dataset, val_dataset=test_dataset, optimizer=optimal_optimizer_gru)
     
     # Train for the exact same number of epochs
     gru_history = gru_trainer.train(epochs=10)
